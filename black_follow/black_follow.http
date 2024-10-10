@@ -1,0 +1,6 @@
+@black_follow_HostAddress = http://localhost:5165
+
+GET {{black_follow_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

@@ -1,0 +1,70 @@
+name: Deploy to Server
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1. Checkout the latest code from the repository
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      # 2. Set up SSH agent with the private key stored in GitHub secrets
+      - name: Set up SSH
+        uses: webfactory/ssh-agent@v0.8.1
+        with:
+          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+
+      # 3. Deploy to the server via SSH and check/install Docker and Docker Compose
+      - name: Deploy and Install Docker/Compose if not present
+        run: |
+          ssh -o StrictHostKeyChecking=no ${{ secrets.SSH_USERNAME }}@${{ secrets.SERVER_IP }} << 'EOF'
+            # Check if Docker is installed
+            if ! [ -x "$(command -v docker)" ]; then
+              echo "Docker not found. Installing Docker..."
+              sudo apt-get update
+              sudo apt-get install -y docker.io
+              sudo systemctl start docker
+              sudo systemctl enable docker
+            else
+              echo "Docker is already installed."
+            fi
+
+            # Check if Docker Compose is installed
+            if ! [ -x "$(command -v docker-compose)" ]; then
+              echo "Docker Compose not found. Installing Docker Compose..."
+              sudo curl -L "https://github.com/docker/compose/releases/download/$(curl -s https://api.github.com/repos/docker/compose/releases/latest | grep -oP '"tag_name": "\K(.*)(?=")')/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+              sudo chmod +x /usr/local/bin/docker-compose
+            else
+              echo "Docker Compose is already installed."
+            fi
+
+            # Navigate to the project directory and pull the latest code
+            cd /path/to/your/project  # Replace with your project path on the server
+            git pull origin main
+
+            # Rebuild and restart Docker containers
+            docker-compose down
+            docker-compose up -d --build
+          EOF
+
+      # 4. Send Telegram success message
+      - name: Send Telegram Success Message
+        if: success()
+        run: |
+          curl -s --data "chat_id=${{ secrets.TELEGRAM_CHAT_ID }}" \
+                   --data "text=Deployment Successful: The application has been successfully updated on the server!" \
+                   "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage"
+
+      # 5. Send Telegram failure message
+      - name: Send Telegram Failure Message
+        if: failure()
+        run: |
+          curl -s --data "chat_id=${{ secrets.TELEGRAM_CHAT_ID }}" \
+                   --data "text=Deployment Failed: There was an error during deployment." \
+                   "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage"
