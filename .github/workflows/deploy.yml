@@ -21,11 +21,11 @@ jobs:
           username: ${{ secrets.DOCKER_USERNAME }} # Your Docker Hub username
           password: ${{ secrets.DOCKER_ACCESS_TOKEN }} # Docker Access Token (instead of password)
 
-      # 3. Build and push Docker image to Docker Hub
-      - name: Build and Push Docker Image
+      # 3. Build and push Docker image using Docker Compose
+      - name: Build and Push Docker Image using Docker Compose
         run: |
-          docker build -t ${{ secrets.DOCKER_USERNAME }}/your-image-name:latest .
-          docker push ${{ secrets.DOCKER_USERNAME }}/your-image-name:latest
+          docker-compose -f docker-compose.yml build
+          docker-compose -f docker-compose.yml push
 
   deploy:
     runs-on: ubuntu-latest
