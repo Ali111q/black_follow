@@ -1,5 +1,4 @@
-﻿version: "3"
-services:
+﻿services:
   black_follow:
     image: black_follow_2 # Updated image name
     build:

@@ -46,15 +46,23 @@ jobs:
         with:
           ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
 
-      # 2. Deploy to the server via SSH, pull the Docker image from Docker Hub and restart the containers
-      - name: Pull Docker Image and Restart Containers
+      # 2. SSH into the server, install Docker Compose if needed, and deploy the containers
+      - name: Deploy to the Server
         run: |
           ssh -o StrictHostKeyChecking=no ${{ secrets.SSH_USERNAME }}@${{ secrets.SERVER_IP }} << 'EOF'
-            # Navigate to the project directory
-            cd /path/to/your/project  # Replace with your project path on the server
-            
+            # Ensure Docker Compose is installed on the server
+            if ! [ -x "$(command -v docker-compose)" ]; then
+              echo "Docker Compose not found, installing..."
+              sudo curl -L "https://github.com/docker/compose/releases/download/$(curl -s https://api.github.com/repos/docker/compose/releases/latest | grep -oP '"tag_name": "\K(.*)(?=")')/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+              sudo chmod +x /usr/local/bin/docker-compose
+              docker-compose --version  # Verify installation
+            fi
+
+            # Navigate to the project directory (replace with actual path)
+            cd /home/ubuntu/black_follow  # <-- Replace with actual path to your project
+
             # Pull the latest Docker image from Docker Hub
-            docker pull ${{ secrets.DOCKER_USERNAME }}/black_follow_2:latest  # Updated to black_follow_2
+            docker pull ${{ secrets.DOCKER_USERNAME }}/black_follow_2:latest
 
             # Rebuild and restart Docker containers
             docker-compose down
