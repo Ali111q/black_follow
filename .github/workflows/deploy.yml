@@ -6,7 +6,7 @@ on:
       - main
 
 jobs:
-  deploy:
+  build:
     runs-on: ubuntu-latest
 
     steps:
@@ -14,46 +14,46 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v3
 
-      # 2. Set up SSH agent with the private key stored in GitHub secrets
+      # 2. Log in to Docker Hub using Docker Access Token
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }} # Your Docker Hub username
+          password: ${{ secrets.DOCKER_ACCESS_TOKEN }} # Docker Access Token (instead of password)
+
+      # 3. Build and push Docker image to Docker Hub
+      - name: Build and Push Docker Image
+        run: |
+          docker build -t ${{ secrets.DOCKER_USERNAME }}/your-image-name:latest .
+          docker push ${{ secrets.DOCKER_USERNAME }}/your-image-name:latest
+
+  deploy:
+    runs-on: ubuntu-latest
+    needs: build
+
+    steps:
+      # 1. Set up SSH agent with the private key stored in GitHub secrets
       - name: Set up SSH
         uses: webfactory/ssh-agent@v0.5.3
         with:
           ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
 
-      # 3. Deploy to the server via SSH and check/install Docker and Docker Compose
-      - name: Deploy and Install Docker/Compose if not present
+      # 2. Deploy to the server via SSH, pull the Docker image from Docker Hub and restart the containers
+      - name: Pull Docker Image and Restart Containers
         run: |
           ssh -o StrictHostKeyChecking=no ${{ secrets.SSH_USERNAME }}@${{ secrets.SERVER_IP }} << 'EOF'
-            # Check if Docker is installed
-            if ! [ -x "$(command -v docker)" ]; then
-              echo "Docker not found. Installing Docker..."
-              sudo apt-get update
-              sudo apt-get install -y docker.io
-              sudo systemctl start docker
-              sudo systemctl enable docker
-            else
-              echo "Docker is already installed."
-            fi
-
-            # Check if Docker Compose is installed
-            if ! [ -x "$(command -v docker-compose)" ]; then
-              echo "Docker Compose not found. Installing Docker Compose..."
-              sudo curl -L "https://github.com/docker/compose/releases/download/$(curl -s https://api.github.com/repos/docker/compose/releases/latest | grep -oP '"tag_name": "\K(.*)(?=")')/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
-              sudo chmod +x /usr/local/bin/docker-compose
-            else
-              echo "Docker Compose is already installed."
-            fi
-
-            # Navigate to the project directory and pull the latest code
+            # Navigate to the project directory
             cd /path/to/your/project  # Replace with your project path on the server
-            git pull origin main
+            
+            # Pull the latest Docker image from Docker Hub
+            docker pull ${{ secrets.DOCKER_USERNAME }}/your-image-name:latest
 
             # Rebuild and restart Docker containers
             docker-compose down
             docker-compose up -d --build
           EOF
 
-      # 4. Send Telegram success message
+      # 3. Send Telegram success message
       - name: Send Telegram Success Message
         if: success()
         run: |
@@ -61,7 +61,7 @@ jobs:
                    --data "text=Deployment Successful: The application has been successfully updated on the server!" \
                    "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage"
 
-      # 5. Send Telegram failure message
+      # 4. Send Telegram failure message
       - name: Send Telegram Failure Message
         if: failure()
         run: |
