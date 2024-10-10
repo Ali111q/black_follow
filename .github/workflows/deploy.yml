@@ -16,7 +16,7 @@ jobs:
 
       # 2. Set up SSH agent with the private key stored in GitHub secrets
       - name: Set up SSH
-        uses: webfactory/ssh-agent@v0.8.1
+        uses: webfactory/ssh-agent@v0.5.3
         with:
           ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
 
