@@ -32,7 +32,8 @@ jobs:
       - name: Build and Push Docker Image using Docker Compose
         run: |
           docker-compose -f docker-compose.yml build
-          docker-compose -f docker-compose.yml push
+          docker tag black_follow_2 ${{ secrets.DOCKER_USERNAME }}/black_follow_2:latest
+          docker push ${{ secrets.DOCKER_USERNAME }}/black_follow_2:latest
 
   deploy:
     runs-on: ubuntu-latest
