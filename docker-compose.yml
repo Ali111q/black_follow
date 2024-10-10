@@ -1,7 +1,7 @@
 ﻿version: "3"
 services:
   black_follow:
-    image: black_follow
+    image: black_follow_2 # Updated image name
     build:
       context: .
       dockerfile: black_follow/Dockerfile
