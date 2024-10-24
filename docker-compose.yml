@@ -1,41 +1,63 @@
-﻿services:
-  black_follow:
-    image: black_follow_2 # Updated image name
-    build:
-      context: .
-      dockerfile: black_follow/Dockerfile
-    ports:
-      - "8080:8080"
-      - "8081:8081"
-    networks:
-      - blackfollow-network
-
-  postgres:
-    image: postgres:latest
-    container_name: blackfollow.database
+﻿#services:
+#  black_follow:
+#    image: black_follow_2 # Updated image name
+#    build:
+#      context: .
+#      dockerfile: black_follow/Dockerfile
+#    ports:
+#      - "8080:8080"
+#      - "8081:8081"
+#    networks:
+#      - blackfollow-network
+#
+#
+#
+#  postgres:
+#    image: postgres:latest
+#    container_name: blackfollow.database
+#    environment:
+#      POSTGRES_USER: postgres
+#      POSTGRES_PASSWORD: 10109989
+#      POSTGRES_DB: blackfollow2
+#    ports:
+#      - "5432:5432"
+#    volumes:
+#      - ./.containers/database:/var/lib/postgresql/data
+#    networks:
+#      - blackfollow-network
+#
+#  nginx:
+#    image: nginx:latest
+#    container_name: blackfollow.nginx
+#    ports:
+#      - "80:80" # Expose port 80 for public access
+#    volumes:
+#      - ./nginx.conf:/etc/nginx/nginx.conf:ro # Mount the nginx.conf file
+#    depends_on:
+#      - black_follow
+#    networks:
+#      - blackfollow-network
+#
+#networks:
+#  blackfollow-network:
+#    driver: bridge
+version: '3'
+services:
+  neo4j:
+    image: neo4j:5.11.0
+    container_name: neo4j
     environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: 10109989
-      POSTGRES_DB: blackfollow2
+      - NEO4J_AUTH=neo4j/password   # set username/password here (change 'password' to a secure one)
     ports:
-      - "5432:5432"
+      - "7474:7474"   # Web UI (browser)
+      - "7687:7687"   # Bolt protocol
     volumes:
-      - ./.containers/database:/var/lib/postgresql/data
-    networks:
-      - blackfollow-network
-
-  nginx:
-    image: nginx:latest
-    container_name: blackfollow.nginx
-    ports:
-      - "80:80" # Expose port 80 for public access
-    volumes:
-      - ./nginx.conf:/etc/nginx/nginx.conf:ro # Mount the nginx.conf file
-    depends_on:
-      - black_follow
-    networks:
-      - blackfollow-network
-
-networks:
-  blackfollow-network:
-    driver: bridge
+      - neo4j_data:/data   # persist data outside of the container
+      - neo4j_logs:/logs   # persist logs outside of the container
+      - neo4j_import:/import   # import folder
+      - neo4j_plugins:/plugins   # plugins folder for any extra modules
+volumes:
+  neo4j_data:
+  neo4j_logs:
+  neo4j_import:
+  neo4j_plugins:

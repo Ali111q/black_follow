@@ -1,0 +1,3 @@
+﻿<Project>
+  <Import Project="../build/black_follow.props" />
+</Project>
